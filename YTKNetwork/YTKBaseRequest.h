@@ -65,6 +65,13 @@ typedef NS_ENUM(NSInteger, YTKRequestPriority) {
     YTKRequestPriorityDefault = 0,
     YTKRequestPriorityHigh = 4,
 };
+    
+//起飞策略
+typedef NS_ENUM(NSInteger , YTKRequestPolicy) {
+    YTKRequestPolicyNormal = 0,
+    YTKRequestPolicyCancelFront = 1,//取消前一个相同类型请求
+    YTKRequestPolicyCancelBack = 2, //取消后续的相同类型请求
+};
 
 @protocol AFMultipartFormData;
 
@@ -224,6 +231,10 @@ typedef void(^YTKRequestCompletionBlock)(__kindof YTKBaseRequest *request);
 ///  The priority of the request. Effective only on iOS 8+. Default is `YTKRequestPriorityDefault`.
 @property (nonatomic) YTKRequestPriority requestPriority;
 
+@property (nonatomic) YTKRequestPolicy requestPolicy;
+
+@property (nonatomic, copy) NSString* requestUrl;
+
 ///  Set completion callbacks
 - (void)setCompletionBlockWithSuccess:(nullable YTKRequestCompletionBlock)success
                               failure:(nullable YTKRequestCompletionBlock)failure;
@@ -263,7 +274,7 @@ typedef void(^YTKRequestCompletionBlock)(__kindof YTKBaseRequest *request);
 ///  Called on the main thread after request succeeded.
 - (void)requestCompleteFilter;
 
-///  Called on background thread after request failed but before switching to main thread. See also
+///  Called on background thread after request succeded but before switching to main thread. See also
 ///  `requestCompletePreprocessor`.
 - (void)requestFailedPreprocessor;
 

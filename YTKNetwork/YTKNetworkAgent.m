@@ -100,17 +100,19 @@
     NSParameterAssert(request != nil);
 
     NSString *detailUrl = [request requestUrl];
-    NSURL *temp = [NSURL URLWithString:detailUrl];
-    // If detailUrl is valid URL
-    if (temp && temp.host && temp.scheme) {
-        return detailUrl;
-    }
+    
     // Filter URL if needed
     NSArray *filters = [_config urlFilters];
     for (id<YTKUrlFilterProtocol> f in filters) {
         detailUrl = [f filterUrl:detailUrl withRequest:request];
     }
-
+    
+    NSURL *temp = [NSURL URLWithString:detailUrl];
+    // If detailUrl is valid URL
+    if (temp && temp.host && temp.scheme) {
+        return detailUrl;
+    }
+    
     NSString *baseUrl;
     if ([request useCDN]) {
         if ([request cdnUrl].length > 0) {
@@ -241,16 +243,7 @@
 - (void)cancelRequest:(YTKBaseRequest *)request {
     NSParameterAssert(request != nil);
 
-    if (request.resumableDownloadPath) {
-        NSURLSessionDownloadTask *requestTask = (NSURLSessionDownloadTask *)request.requestTask;
-        [requestTask cancelByProducingResumeData:^(NSData *resumeData) {
-            NSURL *localUrl = [self incompleteDownloadTempPathForDownloadPath:request.resumableDownloadPath];
-            [resumeData writeToURL:localUrl atomically:YES];
-        }];
-    } else {
-        [request.requestTask cancel];
-    }
-
+    [request.requestTask cancel];
     [self removeRequestFromRecord:request];
     [request clearCompletionBlock];
 }
@@ -426,6 +419,27 @@
     [_requestsRecord removeObjectForKey:@(request.requestTask.taskIdentifier)];
     YTKLog(@"Request queue size = %zd", [_requestsRecord count]);
     Unlock();
+}
+
+- (YTKBaseRequest *)checkRequetExist:(YTKBaseRequest *)destRequet {
+    NSString *destClass = NSStringFromClass([destRequet class]);
+    Lock();
+    NSArray *allKeys = [_requestsRecord allKeys];
+    Unlock();
+    if (allKeys && allKeys.count > 0) {
+        NSArray *copiedKeys = [allKeys copy];
+        for (NSNumber *key in copiedKeys) {
+            Lock();
+            YTKBaseRequest *request = _requestsRecord[key];
+            Unlock();
+            if ([NSStringFromClass([request class]) isEqualToString:destClass] &&
+                [request.requestUrl isEqualToString:destRequet.requestUrl])
+            {
+                return request;
+            }
+        }
+    }
+    return nil;
 }
 
 #pragma mark -
